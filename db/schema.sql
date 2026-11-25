@@ -1,4 +1,4 @@
--- Market News Hub schema. Safe to run repeatedly: every statement is idempotent.
+-- MARES schema. Safe to run repeatedly: every statement is idempotent.
 -- The ingest job applies this file at the start of each run.
 
 -- pgvector stores the headline embeddings used to group duplicate stories

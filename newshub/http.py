@@ -10,7 +10,7 @@ from urllib3.util.retry import Retry
 
 DEFAULT_TIMEOUT = 20  # seconds
 GENERIC_USER_AGENT = (
-    "Mozilla/5.0 (compatible; market-news-hub/0.1; +https://github.com/BillJ30/market-news-hub)"
+    "Mozilla/5.0 (compatible; MARES/0.1; +https://github.com/BillJ30/MARES)"
 )
 
 

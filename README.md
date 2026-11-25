@@ -1,4 +1,4 @@
-# MARES - Market News Hub
+# MARES
 
 One place to see the latest filings, press releases and news for 98 companies from the Nasdaq-100.
 Instead of searching company by company, a scheduled job collects everything every 15 minutes,
@@ -21,7 +21,7 @@ flowchart LR
         D[newshub.ingest<br/>fetch, normalise, tag]
     end
     E[(Supabase Postgres)]
-    F[Streamlit dashboard<br/>coming in step 3]
+    F[Streamlit dashboard<br/>news, companies, pulse, health]
     A --> D
     B --> D
     C --> D
@@ -49,6 +49,27 @@ Each run:
 8. Writes a row to `ingest_runs` with counts and any errors, so failures are visible.
 
 If one source or one company fails, the run logs it and carries on with the rest.
+
+## Dashboard
+
+A Streamlit app (`dashboard/`) reads the database and has four pages:
+
+| Page | What it shows |
+| --- | --- |
+| **Latest news** | One card per story with every source behind it, filterable by company, event type, time window and text search |
+| **Company** | Stories per day for one company, its latest stories and its SEC filings |
+| **Market pulse** | Most covered companies, the mix of event types per day, the share of duplicate coverage, and recent filings such as leadership changes |
+| **Pipeline health** | Every collector run: status, run time, items saved, problems |
+
+Run it locally:
+
+```bash
+pip install -r dashboard/requirements.txt
+streamlit run dashboard/app.py
+```
+
+The public version logs in as a **read-only database user** (`db/dashboard_role.sql`), so the app can never change data.
+It has a dark, newspaper-style theme. Charts use a colour-blind-safe palette (validated for the dark background) with a fixed colour per event type, and every chart has a table view.
 
 ## Data sources
 
@@ -79,7 +100,7 @@ git init
 git add .
 git commit -m "Ingestion pipeline: EDGAR, RSS and Finnhub into Postgres"
 git branch -M main
-git remote add origin https://github.com/<your-username>/market-news-hub.git
+git remote add origin https://github.com/<your-username>/MARES.git
 git push -u origin main
 ```
 
@@ -176,7 +197,7 @@ The **Tests** workflow runs the full suite, including a Postgres 16 service with
 
 - [x] Step 1: ingestion from EDGAR, RSS and Finnhub into Postgres on a schedule
 - [x] Step 2: group duplicate stories across sources (sentence embeddings + pgvector) and tag event types
-- [ ] Step 3: Streamlit dashboard with company pages, filters and a watchlist
+- [x] Step 3: Streamlit dashboard: latest stories, company pages, market pulse, pipeline health
 - [ ] Step 4: short summaries, tone labels (FinBERT) and Telegram alerts for important filings
 - [ ] Step 5: public launch
 
