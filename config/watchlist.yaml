@@ -1,0 +1,129 @@
+# Companies to track and how far back each run looks.
+# This list is based on the Nasdaq-100 (GOOG left out: same company as GOOGL), Nov 2026.
+# EA (taken private) and WBD (split into two companies) were removed: 98 companies.
+# Quote any ticker YAML could misread as true/false or a number, e.g. "ON", "NO", "YES".
+# The index is reshuffled every December, so review this list once a year.
+#
+# Optional per-company fields:
+#   cik:        SEC company number. Looked up automatically if missing.
+#   news_query: custom Google News search text (default: "<name> <ticker> stock").
+#   feeds:      extra RSS feeds, for example a company's investor-relations feed.
+
+settings:
+  lookback_days: 3        # each run re-checks this many days; duplicates are skipped
+  retention_days: 60      # older rows are deleted to stay inside free database limits
+  # SEC filings are checked for every company on every run.
+  # News feeds rotate: each run checks this many companies, so with 100 companies
+  # and batches of 25 every company's news is refreshed about once an hour.
+  news_batch_size: 25
+  # 6-K, 20-F and 40-F are the forms used by foreign companies (ASML, AstraZeneca, Shopify...).
+  sec_forms: ["8-K", "8-K/A", "10-Q", "10-K", "6-K", "20-F", "40-F"]
+
+# Feed templates applied to every company. {query} and {ticker} are filled in.
+# If a feed stops working, the run logs the error and carries on.
+rss_templates:
+  - name: Google News
+    url: "https://news.google.com/rss/search?q={query}&hl=en-US&gl=US&ceid=US:en"
+  - name: Yahoo Finance
+    url: "https://feeds.finance.yahoo.com/rss/2.0/headline?s={ticker}&region=US&lang=en-US"
+
+# Ordered by index weight, largest first.
+companies:
+  - { ticker: NVDA,  name: Nvidia }
+  - { ticker: AAPL,  name: Apple }
+  - { ticker: MSFT,  name: Microsoft }
+  - { ticker: AMZN,  name: Amazon }
+  - { ticker: GOOGL, name: Alphabet }
+  - { ticker: AVGO,  name: Broadcom }
+  - { ticker: META,  name: Meta Platforms }
+  - { ticker: TSLA,  name: Tesla }
+  - { ticker: ASML,  name: ASML }
+  - { ticker: COST,  name: Costco }
+  - { ticker: MU,    name: Micron }
+  - { ticker: PLTR,  name: Palantir }
+  - { ticker: AMD,   name: AMD }
+  - { ticker: NFLX,  name: Netflix }
+  - { ticker: CSCO,  name: Cisco }
+  - { ticker: AZN,   name: AstraZeneca }
+  - { ticker: LRCX,  name: Lam Research }
+  - { ticker: AMAT,  name: Applied Materials }
+  - { ticker: INTC,  name: Intel }
+  - { ticker: TMUS,  name: T-Mobile US }
+  - { ticker: KLAC,  name: KLA }
+  - { ticker: LIN,   name: Linde }
+  - { ticker: SHOP,  name: Shopify }
+  - { ticker: PEP,   name: PepsiCo }
+  - { ticker: APP,   name: AppLovin }
+  - { ticker: ISRG,  name: Intuitive Surgical }
+  - { ticker: AMGN,  name: Amgen }
+  - { ticker: TXN,   name: Texas Instruments }
+  - { ticker: QCOM,  name: Qualcomm }
+  - { ticker: BKNG,  name: Booking Holdings }
+  - { ticker: GILD,  name: Gilead Sciences }
+  - { ticker: INTU,  name: Intuit }
+  - { ticker: PDD,   name: PDD Holdings }
+  - { ticker: ADI,   name: Analog Devices }
+  - { ticker: HON,   name: Honeywell }
+  - { ticker: PANW,  name: Palo Alto Networks }
+  - { ticker: ADBE,  name: Adobe }
+  - { ticker: CRWD,  name: CrowdStrike }
+  - { ticker: ARM,   name: Arm Holdings }
+  - { ticker: VRTX,  name: Vertex Pharmaceuticals }
+  - { ticker: CEG,   name: Constellation Energy }
+  - { ticker: SBUX,  name: Starbucks }
+  - { ticker: ADP,   name: ADP }
+  - { ticker: MELI,  name: MercadoLibre }
+  - { ticker: CMCSA, name: Comcast }
+  - { ticker: SNPS,  name: Synopsys }
+  - { ticker: DASH,  name: DoorDash }
+  - { ticker: MAR,   name: Marriott }
+  - { ticker: CDNS,  name: Cadence Design Systems }
+  - { ticker: ORLY,  name: O'Reilly Automotive }
+  - { ticker: ABNB,  name: Airbnb }
+  - { ticker: CTAS,  name: Cintas }
+  - { ticker: REGN,  name: Regeneron }
+  - { ticker: MNST,  name: Monster Beverage }
+  - { ticker: MDLZ,  name: Mondelez }
+  - { ticker: MRVL,  name: Marvell Technology }
+  - { ticker: CSX,   name: CSX }
+  - { ticker: AEP,   name: American Electric Power }
+  - { ticker: PCAR,  name: Paccar }
+  - { ticker: ROST,  name: Ross Stores }
+  - { ticker: NXPI,  name: NXP Semiconductors }
+  - { ticker: IDXX,  name: Idexx Laboratories }
+  - { ticker: ADSK,  name: Autodesk }
+  - { ticker: FTNT,  name: Fortinet }
+  - { ticker: TRI,   name: Thomson Reuters }
+  - { ticker: PYPL,  name: PayPal }
+  - { ticker: BKR,   name: Baker Hughes }
+  - { ticker: AXON,  name: Axon Enterprise }
+  - { ticker: MSTR,  name: Strategy, news_query: "MicroStrategy MSTR stock" }
+  - { ticker: FAST,  name: Fastenal }
+  - { ticker: WDAY,  name: Workday }
+  - { ticker: EXC,   name: Exelon }
+  - { ticker: ROP,   name: Roper Technologies }
+  - { ticker: XEL,   name: Xcel Energy }
+  - { ticker: TTWO,  name: Take-Two Interactive }
+  - { ticker: FANG,  name: Diamondback Energy }
+  - { ticker: DDOG,  name: Datadog }
+  - { ticker: CTSH,  name: Cognizant }
+  - { ticker: MCHP,  name: Microchip Technology }
+  - { ticker: CCEP,  name: Coca-Cola Europacific Partners }
+  - { ticker: PAYX,  name: Paychex }
+  - { ticker: CPRT,  name: Copart }
+  - { ticker: GEHC,  name: GE HealthCare }
+  - { ticker: KDP,   name: Keurig Dr Pepper }
+  - { ticker: ODFL,  name: Old Dominion Freight Line }
+  - { ticker: ZS,    name: Zscaler }
+  - { ticker: TEAM,  name: Atlassian }
+  - { ticker: VRSK,  name: Verisk }
+  - { ticker: KHC,   name: Kraft Heinz }
+  - { ticker: CSGP,  name: CoStar Group }
+  - { ticker: DXCM,  name: Dexcom }
+  - { ticker: CHTR,  name: Charter Communications }
+  - { ticker: "ON",  name: ON Semiconductor }   # quoted: a bare ON means "true" in YAML
+  - { ticker: BIIB,  name: Biogen }
+  - { ticker: LULU,  name: Lululemon }
+  - { ticker: GFS,   name: GlobalFoundries }
+  - { ticker: TTD,   name: The Trade Desk }
+  - { ticker: CDW,   name: CDW }

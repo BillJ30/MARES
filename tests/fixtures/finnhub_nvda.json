@@ -1,0 +1,23 @@
+[
+  {
+    "category": "company",
+    "datetime": 1795168800,
+    "headline": "Nvidia supplier signals strong data-centre demand",
+    "id": 9000001,
+    "image": "",
+    "related": "NVDA",
+    "source": "Sample Markets",
+    "summary": "A key supplier said orders from data-centre customers stayed strong through the quarter.",
+    "url": "https://www.sample-markets.com/articles/nvidia-supplier-demand?utm_source=finnhub"
+  },
+  {
+    "category": "company",
+    "datetime": 1794000000,
+    "headline": "Old Finnhub story",
+    "id": 9000000,
+    "related": "NVDA",
+    "source": "Sample Markets",
+    "summary": "",
+    "url": "https://www.sample-markets.com/articles/old"
+  }
+]

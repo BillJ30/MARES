@@ -1,0 +1,33 @@
+name: Ingest news
+
+on:
+  schedule:
+    # Every 15 minutes. GitHub can delay scheduled runs by several minutes at busy times.
+    - cron: "*/15 * * * *"
+  workflow_dispatch: {}   # adds a "Run workflow" button for manual runs
+
+concurrency:
+  group: ingest
+  cancel-in-progress: false
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run ingestion
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SEC_USER_AGENT: ${{ secrets.SEC_USER_AGENT }}
+          FINNHUB_API_KEY: ${{ secrets.FINNHUB_API_KEY }}
+        run: python -m newshub.ingest
