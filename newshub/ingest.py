@@ -15,8 +15,9 @@ import sys
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 
-from . import db
+from . import cluster, db
 from .config import DEFAULT_WATCHLIST, Settings, load_settings
+from .embeddings import Embedder, FastEmbedder
 from .http import make_session
 from .models import NewsItem
 from .sources import edgar, finnhub, rss
@@ -98,6 +99,8 @@ def run(
     dry_run: bool = False,
     clients: Clients | None = None,
     now: datetime | None = None,
+    embedder: Embedder | None = None,
+    skip_clustering: bool = False,
 ) -> dict:
     started = now or datetime.now(timezone.utc)
     since = started - timedelta(days=settings.lookback_days)
@@ -122,12 +125,24 @@ def run(
         if "finnhub" in sources:
             _run_finnhub(news_companies, clients, track, since, started)
 
+        clustering: dict = {}
         if conn is not None:
             for source, items in track.items.items():
                 track.stats[source]["items_new"] = db.insert_items(conn, items)
             pruned = db.prune(conn, settings.retention_days)
+            if not skip_clustering:
+                try:
+                    clustering = cluster.assign_clusters(
+                        conn,
+                        embedder or FastEmbedder(),
+                        settings.cluster_threshold,
+                        settings.cluster_window_hours,
+                    )
+                except Exception as exc:  # noqa: BLE001 - news is saved even if grouping fails
+                    conn.rollback()
+                    track.error(f"clustering: {type(exc).__name__}: {exc}")
             finished = datetime.now(timezone.utc)
-            extra = {"pruned": pruned, "news_batch": f"{batch_no}/{batches}"}
+            extra = {"pruned": pruned, "news_batch": f"{batch_no}/{batches}", "clustering": clustering}
             db.log_run(conn, started, finished, track.status, {**track.stats, **extra}, track.errors)
     finally:
         if conn is not None:
@@ -139,6 +154,7 @@ def run(
         "errors": track.errors,
         "items": track.items,
         "news_batch": (batch_no, batches, [c.ticker for c in news_companies]),
+        "clustering": clustering,
     }
 
 
@@ -208,6 +224,12 @@ def _print_summary(result: dict, dry_run: bool) -> None:
             f"  {source:8} {s['requests_ok']} ok / {s['requests_failed']} failed requests, "
             f"{s['items_fetched']} items{new}"
         )
+    c = result.get("clustering") or {}
+    if c.get("embedded"):
+        print(
+            f"  grouping {c['embedded']} embedded: {c['joined_existing']} joined an existing story, "
+            f"{c['new_clusters']} new stories ({c['seconds']}s)"
+        )
     if result["errors"]:
         print(f"\n{len(result['errors'])} problem(s):")
         for e in result["errors"][:20]:
@@ -226,6 +248,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--sources", default=",".join(ALL_SOURCES), help="comma list: edgar,rss,finnhub")
     parser.add_argument("--lookback-days", type=int, help="override lookback_days from the watchlist")
     parser.add_argument("--all-news", action="store_true", help="check news for every company this run (no rotation)")
+    parser.add_argument("--skip-clustering", action="store_true", help="save news but do not embed or group it")
     parser.add_argument("--config", default=str(DEFAULT_WATCHLIST), help="path to watchlist.yaml")
     parser.add_argument("-v", "--verbose", action="store_true")
     args = parser.parse_args(argv)
@@ -245,7 +268,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.all_news:
         settings.news_batch_size = 0
 
-    result = run(settings, sources=sources, dry_run=args.dry_run)
+    result = run(settings, sources=sources, dry_run=args.dry_run, skip_clustering=args.skip_clustering)
     _print_summary(result, args.dry_run)
     return 1 if result["status"] == "failed" else 0
 

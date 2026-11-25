@@ -16,6 +16,12 @@ settings:
   # News feeds rotate: each run checks this many companies, so with 100 companies
   # and batches of 25 every company's news is refreshed about once an hour.
   news_batch_size: 25
+  # Duplicate grouping (step 2): headlines about the same company count as one story
+  # when their similarity is at least cluster_threshold (0 to 1) and they were
+  # published within cluster_window_hours of each other. Tune with:
+  #   python -m newshub.cluster --recluster-days 3 --threshold 0.8
+  cluster_threshold: 0.78
+  cluster_window_hours: 48
   # 6-K, 20-F and 40-F are the forms used by foreign companies (ASML, AstraZeneca, Shopify...).
   sec_forms: ["8-K", "8-K/A", "10-Q", "10-K", "6-K", "20-F", "40-F"]
 

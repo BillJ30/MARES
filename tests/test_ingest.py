@@ -1,7 +1,7 @@
 import os
 
 import pytest
-from conftest import NOW, FakeRss
+from conftest import NOW, FakeEmbedder, FakeRss
 
 from newshub import db
 from newshub.config import load_settings
@@ -91,16 +91,18 @@ def test_end_to_end_insert_and_dedupe(settings, fake_clients, clean_db):
     settings.database_url = DB_URL
     settings.retention_days = 3650  # keep fixture rows despite their fixed dates
 
-    first = run(settings, clients=fake_clients, now=NOW)
+    first = run(settings, clients=fake_clients, now=NOW, embedder=FakeEmbedder())
     assert first["status"] == "ok"
     assert first["stats"]["edgar"]["items_new"] == 3
     assert first["stats"]["rss"]["items_new"] == 2
     assert first["stats"]["finnhub"]["items_new"] == 1
+    assert first["clustering"]["embedded"] == 6       # every new row gets an embedding
 
     # Same data again: nothing new, and the CIK now comes from the database.
     fake_clients.edgar.ticker_map_calls = 0
-    second = run(settings, clients=fake_clients, now=NOW)
+    second = run(settings, clients=fake_clients, now=NOW, embedder=FakeEmbedder())
     assert sum(s["items_new"] for s in second["stats"].values()) == 0
+    assert second["clustering"]["embedded"] == 0      # nothing new to embed
     assert fake_clients.edgar.ticker_map_calls == 0
 
     conn = clean_db

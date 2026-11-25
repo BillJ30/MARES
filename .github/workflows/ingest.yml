@@ -15,15 +15,22 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
           cache: pip
 
       - name: Install dependencies
         run: pip install -r requirements.txt
+
+      # Keep the embedding model (about 90 MB) between runs instead of downloading it every 15 minutes.
+      - name: Cache embedding model
+        uses: actions/cache@v4
+        with:
+          path: .cache/fastembed
+          key: fastembed-all-MiniLM-L6-v2-v1
 
       - name: Run ingestion
         env:

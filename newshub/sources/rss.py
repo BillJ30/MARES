@@ -15,6 +15,7 @@ import requests
 from ..config import RssTemplate
 from ..http import DEFAULT_TIMEOUT, RateLimiter
 from ..models import Company, NewsItem
+from ..tagging import tag_headline
 from ..text import clean_text, strip_html, truncate
 
 SUMMARY_LIMIT = 600
@@ -99,7 +100,7 @@ def parse_feed(
                 url=link,
                 published_at=published,
                 summary=truncate(summary, SUMMARY_LIMIT) or None,
-                tags=["news"],
+                tags=tag_headline(title),
                 external_id=(entry.get("id") or None),
             )
         )

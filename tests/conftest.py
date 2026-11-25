@@ -66,6 +66,29 @@ class FakeRss:
         return fixture_bytes("google_news_nvda.xml")
 
 
+class FakeEmbedder:
+    """Stand-in for the real model in tests: a bag of words hashed into 384 slots.
+    Headlines sharing most words come out similar, like they would with the real model."""
+
+    def __init__(self):
+        self.calls = 0
+
+    def embed(self, texts):
+        import hashlib
+        import re
+
+        from newshub.embeddings import DIMENSIONS, normalize
+
+        self.calls += 1
+        out = []
+        for text in texts:
+            vec = [0.0] * DIMENSIONS
+            for word in re.findall(r"[a-z0-9]+", text.lower()):
+                vec[int(hashlib.md5(word.encode()).hexdigest(), 16) % DIMENSIONS] += 1.0
+            out.append(normalize(vec))
+        return out
+
+
 class FakeFinnhub:
     def company_news(self, ticker, start: date, end: date):
         return fixture_json("finnhub_nvda.json")

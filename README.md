@@ -38,8 +38,15 @@ Each run:
    once an hour while SEC filings for every company are still checked every 15 minutes.
    This keeps each run short and stays polite to the free feeds.
 4. Normalises URLs (drops tracking parameters) and inserts only rows it has not seen before.
-5. Deletes rows older than the retention window so the free database never fills up.
-6. Writes a row to `ingest_runs` with counts and any errors, so failures are visible.
+5. **Groups duplicate stories.** Each headline is turned into an embedding (384 numbers that capture
+   its meaning) with the open-source `all-MiniLM-L6-v2` model, run locally through fastembed: no API, no cost.
+   pgvector then finds the most similar earlier headline about the same company within 48 hours; if the
+   similarity is at least 0.78, the new item joins that story. Nine outlets reporting the same Nvidia news
+   become one story with nine sources.
+6. Tags news headlines with event types (earnings, guidance, leadership, m-and-a, legal, analyst,
+   restructuring, capital-return, product) using transparent keyword rules, matching the tags SEC filings get.
+7. Deletes rows older than the retention window so the free database never fills up.
+8. Writes a row to `ingest_runs` with counts and any errors, so failures are visible.
 
 If one source or one company fails, the run logs it and carries on with the rest.
 
@@ -130,6 +137,21 @@ companies:
 | `companies` | ticker, display name, SEC CIK |
 | `news_items` | one row per headline or filing per company: title, link, source, time (UTC), SEC form and items, tags |
 | `ingest_runs` | one row per run: status (`ok`, `partial`, `failed`), counts per source, errors |
+| `story_clusters` (view) | one row per story: headline, first and last seen, number of articles and sources |
+
+`news_items` also holds each headline's `embedding` (pgvector, 384 dimensions) and its `cluster_id`
+(the id of the first report of that story).
+
+### Tuning the duplicate grouping
+
+The similarity threshold is a judgement call: too low merges different stories, too high leaves duplicates apart.
+Look at the groups, then try another value on the last few days without re-running the model:
+
+```bash
+python -m newshub.cluster --recluster-days 3 --threshold 0.82
+```
+
+and set the value you prefer as `cluster_threshold` in `config/watchlist.yaml`.
 
 Row level security is switched on with no policies, which blocks Supabase's public REST API.
 The job and the dashboard connect directly as the table owner and are not affected.
@@ -141,7 +163,7 @@ pytest -q                                                      # parser and pipe
 TEST_DATABASE_URL=postgresql://... pytest -q                   # plus end-to-end tests on a real Postgres
 ```
 
-The **Tests** workflow runs the full suite, including a Postgres 16 service, on every push.
+The **Tests** workflow runs the full suite, including a Postgres 16 service with pgvector, on every push.
 
 ## Things to know about the free tiers
 
@@ -153,7 +175,7 @@ The **Tests** workflow runs the full suite, including a Postgres 16 service, on 
 ## Roadmap
 
 - [x] Step 1: ingestion from EDGAR, RSS and Finnhub into Postgres on a schedule
-- [ ] Step 2: group duplicate stories across sources (sentence embeddings) and tag event types
+- [x] Step 2: group duplicate stories across sources (sentence embeddings + pgvector) and tag event types
 - [ ] Step 3: Streamlit dashboard with company pages, filters and a watchlist
 - [ ] Step 4: short summaries, tone labels (FinBERT) and Telegram alerts for important filings
 - [ ] Step 5: public launch

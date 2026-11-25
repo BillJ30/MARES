@@ -27,6 +27,8 @@ class Settings:
     lookback_days: int = 3
     retention_days: int = 90
     news_batch_size: int = 0  # companies per run for news feeds; 0 = all every run
+    cluster_threshold: float = 0.78  # headline similarity needed to count as the same story
+    cluster_window_hours: int = 48   # duplicates must be published within this many hours
     sec_forms: list[str] = field(default_factory=lambda: ["8-K", "8-K/A", "10-Q", "10-K", "6-K", "20-F"])
     database_url: str | None = None
     sec_user_agent: str | None = None
@@ -73,6 +75,8 @@ def load_settings(path: Path | str = DEFAULT_WATCHLIST) -> Settings:
         lookback_days=int(opts.get("lookback_days", 3)),
         retention_days=int(opts.get("retention_days", 90)),
         news_batch_size=int(opts.get("news_batch_size", 0)),
+        cluster_threshold=float(opts.get("cluster_threshold", 0.78)),
+        cluster_window_hours=int(opts.get("cluster_window_hours", 48)),
         database_url=_env("DATABASE_URL"),
         sec_user_agent=_env("SEC_USER_AGENT"),
         finnhub_api_key=_env("FINNHUB_API_KEY"),

@@ -13,6 +13,7 @@ import requests
 
 from ..http import DEFAULT_TIMEOUT, RateLimiter
 from ..models import Company, NewsItem
+from ..tagging import tag_headline
 from ..text import clean_text, truncate
 
 COMPANY_NEWS_URL = "https://finnhub.io/api/v1/company-news"
@@ -65,7 +66,7 @@ def parse_company_news(rows: list[dict], company: Company, since: datetime) -> l
                 url=url,
                 published_at=published,
                 summary=truncate(summary, 600) or None,
-                tags=["news"],
+                tags=tag_headline(title),
                 external_id=str(row["id"]) if row.get("id") is not None else None,
             )
         )

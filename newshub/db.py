@@ -24,7 +24,11 @@ returning id
 def connect(database_url: str) -> psycopg.Connection:
     # prepare_threshold=None turns off server-side prepared statements, which
     # connection poolers such as Supabase's PgBouncer do not support.
-    return psycopg.connect(database_url, connect_timeout=15, prepare_threshold=None)
+    conn = psycopg.connect(database_url, connect_timeout=15, prepare_threshold=None)
+    # Supabase installs extensions such as pgvector in the "extensions" schema.
+    conn.execute("set search_path to public, extensions")
+    conn.commit()
+    return conn
 
 
 def apply_schema(conn: psycopg.Connection, path: Path = SCHEMA_PATH) -> None:
