@@ -11,14 +11,12 @@ from psycopg.types.json import Jsonb
 from .config import SCHEMA_PATH
 from .models import Company, NewsItem
 
-INSERT_ITEM = """
-insert into news_items (
-    ticker, url_hash, source, source_name, title, url, summary,
-    published_at, form_type, sec_items, tags, external_id
-) values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-on conflict (ticker, url_hash) do nothing
-returning id
-"""
+ITEM_COLUMNS = (
+    "ticker, url_hash, source, source_name, title, url, summary, "
+    "published_at, form_type, sec_items, tags, external_id"
+)
+ROW_PLACEHOLDER = "(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
+INSERT_CHUNK = 500  # rows per INSERT statement: one round trip instead of 500
 
 
 def connect(database_url: str) -> psycopg.Connection:
@@ -65,19 +63,35 @@ def save_ciks(conn: psycopg.Connection, ciks: dict[str, str]) -> None:
 
 
 def insert_items(conn: psycopg.Connection, items: list[NewsItem]) -> int:
-    """Insert new items and return how many were actually new."""
+    """Insert new items and return how many were actually new.
+
+    Rows go in batches of INSERT_CHUNK per statement. Duplicates (already saved,
+    or repeated within the batch) are skipped by the unique (ticker, url_hash) rule.
+    """
+    # The same article can appear twice in one fetch; Postgres refuses to touch
+    # one row twice in a single INSERT ... ON CONFLICT, so drop repeats first.
+    unique: dict[tuple[str, str], NewsItem] = {}
+    for it in items:
+        unique.setdefault((it.ticker, it.url_hash), it)
+    rows = list(unique.values())
+
     inserted = 0
     with conn.cursor() as cur:
-        for it in items:
-            cur.execute(
-                INSERT_ITEM,
-                (
+        for start in range(0, len(rows), INSERT_CHUNK):
+            chunk = rows[start:start + INSERT_CHUNK]
+            params: list = []
+            for it in chunk:
+                params += [
                     it.ticker, it.url_hash, it.source, it.source_name, it.title, it.url,
                     it.summary, it.published_at, it.form_type, it.sec_items, it.tags, it.external_id,
-                ),
+                ]
+            cur.execute(
+                f"insert into news_items ({ITEM_COLUMNS}) values "
+                + ", ".join([ROW_PLACEHOLDER] * len(chunk))
+                + " on conflict (ticker, url_hash) do nothing returning id",
+                params,
             )
-            if cur.fetchone() is not None:
-                inserted += 1
+            inserted += len(cur.fetchall())
     conn.commit()
     return inserted
 

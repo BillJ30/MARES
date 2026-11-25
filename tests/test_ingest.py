@@ -134,3 +134,20 @@ def test_prune_removes_only_old_rows(settings, clean_db):
     assert db.insert_items(conn, [item("https://a.test/old", 40), item("https://a.test/new", 2)]) == 2
     assert db.prune(conn, retention_days=30) == 1
     assert conn.execute("select url from news_items").fetchall() == [("https://a.test/new",)]
+
+
+@needs_db
+def test_bulk_insert_counts_only_new_rows_and_handles_repeats(settings, clean_db):
+    from datetime import datetime, timedelta, timezone
+
+    from newshub.models import NewsItem
+
+    conn = clean_db
+    db.apply_schema(conn)
+    db.upsert_companies(conn, settings.companies)
+    now = datetime.now(timezone.utc)
+    items = [NewsItem("NVDA", "rss", "T", f"t{i}", f"https://b.test/{i}", now - timedelta(minutes=i)) for i in range(1200)]
+    repeated = items + items[:10]                      # same article twice in one fetch
+    assert db.insert_items(conn, repeated) == 1200     # 3 chunks of up to 500 rows
+    assert db.insert_items(conn, items) == 0           # second time: nothing new
+    assert conn.execute("select count(*) from news_items").fetchone()[0] == 1200
