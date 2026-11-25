@@ -3,7 +3,7 @@ name: Ingest news
 on:
   schedule:
     # Every 15 minutes. GitHub can delay scheduled runs by several minutes at busy times.
-    - cron: "*/15 * * * *"
+    - cron: "7,22,37,52 * * * *"
   workflow_dispatch: {}   # adds a "Run workflow" button for manual runs
 
 concurrency:
