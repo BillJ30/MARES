@@ -1,4 +1,4 @@
-# Market News Hub
+# MARES - Market News Hub
 
 One place to see the latest filings, press releases and news for 98 companies from the Nasdaq-100.
 Instead of searching company by company, a scheduled job collects everything every 15 minutes,
