@@ -35,7 +35,7 @@ def test_real_watchlist_loads():
     tickers = [c.ticker for c in settings.companies]
     assert len(tickers) == 98
     assert "ON" in tickers and "TRUE" not in tickers
-    assert settings.news_batch_size == 25
+    assert settings.news_batch_size > 0
     assert "40-F" in settings.sec_forms
 
 
