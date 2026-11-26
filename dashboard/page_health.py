@@ -8,7 +8,7 @@ import ui
 ui.page_head(
     "Behind the scenes",
     "Pipeline health",
-    "The collector runs on GitHub Actions every 15 minutes: it fetches SEC filings and news, "
+    "The collector runs on GitHub Actions every 10 minutes, triggered by cron-job.org: it fetches SEC filings and news, "
     "saves what is new, groups duplicates, and logs every run here.",
 )
 
@@ -31,7 +31,7 @@ healthy = (week["status"] != "failed").mean() if not week.empty else 0
 ui.kpis(
     [
         (f"Last run, {ui.ago(last['finished_at'])}", ui.STATUS_LABELS.get(last["status"], last["status"])),
-        ("Runs, last 24 h (max 96)", f"{len(day)}"),
+        ("Runs, last 24 h (max 144)", f"{len(day)}"),
         ("Runs without failure, 7 days", f"{healthy:.0%}"),
         ("Typical run time", f"{int(week['seconds'].median()) if not week.empty else 0} s"),
     ]

@@ -198,3 +198,14 @@ button[data-variant="segmented_control"][data-selected="true"] p { color: #fff !
 .filing-item a { color: #6aabf1; text-decoration: none; }
 
 .footnote { color: var(--ink-3); font-size: .76rem; margin-top: 1.5rem; border-top: 1px solid var(--line); padding-top: .7rem; }
+
+/* ------------------------------------------------------------ narrower screens
+   Rows of filters wrap onto two lines instead of squeezing their text. */
+@media (max-width: 1280px) {
+  [data-testid="stHorizontalBlock"]:has([data-testid="stSelectbox"]),
+  [data-testid="stHorizontalBlock"]:has([data-testid="stMultiSelect"]) { flex-wrap: wrap; row-gap: .6rem; }
+  [data-testid="stHorizontalBlock"]:has([data-testid="stSelectbox"]) > [data-testid="stColumn"],
+  [data-testid="stHorizontalBlock"]:has([data-testid="stMultiSelect"]) > [data-testid="stColumn"] { flex: 1 1 220px !important; min-width: 220px; }
+}
+/* Toggle switch: glow when on */
+[data-testid="stToggle"] label:hover { color: var(--ink); }

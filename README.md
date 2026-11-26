@@ -1,12 +1,32 @@
 # MARES
 
-One place to see the latest filings, press releases and news for 98 companies from the Nasdaq-100.
-Instead of searching company by company, a scheduled job collects everything every 15 minutes,
-removes duplicates and stores it in Postgres, ready for the dashboard.
+**A live news desk for the Nasdaq-100.** SEC filings and market news for 98 companies, collected every
+10 minutes, with duplicate stories grouped by AI so each story appears once with every source kept.
 
-The whole project runs on free tiers: GitHub Actions, Supabase and public data sources.
+**Live app: [mares-news.streamlit.app](https://mares-news.streamlit.app)**
 
-> Not financial advice. This project only collects and organises public information.
+[![Tests](https://github.com/BillJ30/MARES/actions/workflows/tests.yml/badge.svg)](https://github.com/BillJ30/MARES/actions/workflows/tests.yml)
+[![Ingest news](https://github.com/BillJ30/MARES/actions/workflows/ingest.yml/badge.svg)](https://github.com/BillJ30/MARES/actions/workflows/ingest.yml)
+
+![MARES front page](docs/front-page.png)
+
+## Highlights
+
+- **Primary sources first.** SEC EDGAR filings (8-K, 10-Q, 10-K and foreign-issuer forms) for 98 Nasdaq-100
+  companies, plus Google News, Yahoo Finance and optional Finnhub headlines.
+- **Every 10 minutes, unattended.** GitHub Actions runs the collector; cron-job.org triggers it through the
+  GitHub REST API because GitHub's own scheduler proved unreliable for new repositories.
+- **Duplicate stories grouped with embeddings.** Headlines are embedded with `all-MiniLM-L6-v2` and compared
+  in pgvector; in an early run 300 of 804 new headlines (37%) joined an existing story instead of repeating it.
+- **Readable 8-K filings.** Item codes become plain titles and tags, e.g. item 5.02 is
+  "Departure or Appointment of Directors or Officers", tagged `leadership`.
+- **Fast on free infrastructure.** Batching database round trips cut a full run from 5m 24s to about 1 minute.
+- **Safe by design.** The public dashboard logs in as a read-only database user; row level security blocks
+  everything else; secrets live in GitHub and Streamlit, never in the code.
+- **Tested.** 35 automated tests, including end-to-end runs against Postgres with pgvector, on every push.
+- **Costs nothing to run.** GitHub Actions, Supabase, Streamlit Community Cloud and cron-job.org free tiers.
+
+> Not financial advice. MARES collects and organises public information and links to the original publishers.
 
 ## How it works
 
@@ -17,7 +37,7 @@ flowchart LR
         B[RSS feeds<br/>Google News, Yahoo Finance,<br/>company IR feeds]
         C[Finnhub<br/>company news, optional]
     end
-    subgraph "GitHub Actions (every 15 min)"
+    subgraph "GitHub Actions (every 10 min, triggered by cron-job.org)"
         D[newshub.ingest<br/>fetch, normalise, tag]
     end
     E[(Supabase Postgres)]
@@ -34,8 +54,8 @@ Each run:
 2. Pulls recent filings from EDGAR and turns 8-K item codes into readable titles and tags
    (for example item 5.02 becomes "Departure or Appointment of Directors or Officers", tagged `leadership`).
 3. Reads the RSS feeds and, if a key is set, Finnhub company news. News feeds rotate through the
-   watchlist in batches (25 companies per run by default), so every company gets fresh news about
-   once an hour while SEC filings for every company are still checked every 15 minutes.
+   watchlist in batches (50 companies per run), so every company gets fresh news about every
+   20 minutes while SEC filings for every company are checked every 10 minutes.
    This keeps each run short and stays polite to the free feeds.
 4. Normalises URLs (drops tracking parameters) and inserts only rows it has not seen before.
 5. **Groups duplicate stories.** Each headline is turned into an embedding (384 numbers that capture
@@ -45,6 +65,8 @@ Each run:
    become one story with nine sources.
 6. Tags news headlines with event types (earnings, guidance, leadership, m-and-a, legal, analyst,
    restructuring, capital-return, product) using transparent keyword rules, matching the tags SEC filings get.
+   Automated fund-holding reports ("Fund X acquires 1,000 shares of Nvidia") are tagged `holdings` and hidden
+   from the dashboard by default, so they do not crowd out real news.
 7. Deletes rows older than the retention window so the free database never fills up.
 8. Writes a row to `ingest_runs` with counts and any errors, so failures are visible.
 
@@ -120,7 +142,16 @@ In the repository go to **Settings > Secrets and variables > Actions > New repos
 
 Go to the **Actions** tab, pick **Ingest news** and click **Run workflow**.
 After a minute, open the Supabase **Table Editor** and look at `news_items` and `ingest_runs`.
-From then on it runs every 15 minutes by itself.
+GitHub's own schedule is a backup only: it is often delayed or skipped on new repositories.
+
+### 5. Trigger it every 10 minutes (cron-job.org)
+
+1. Create a fine-grained GitHub token limited to this repository with **Actions: Read and write** only.
+2. On [cron-job.org](https://cron-job.org), create a job that runs every 10 minutes:
+   - URL: `https://api.github.com/repos/<your-username>/MARES/actions/workflows/ingest.yml/dispatches`
+   - Method: `POST`, body: `{"ref":"main"}`
+   - Headers: `Accept: application/vnd.github+json`, `Authorization: Bearer <token>`, `X-GitHub-Api-Version: 2022-11-28`
+3. A test run should return **204 No Content** and start a run on the Actions tab.
 
 ## Running locally
 
@@ -188,9 +219,10 @@ The **Tests** workflow runs the full suite, including a Postgres 16 service with
 
 ## Things to know about the free tiers
 
-- GitHub may start scheduled runs a few minutes late when it is busy, so "every 15 minutes" is approximate.
+- GitHub's built-in schedule is best effort and was found to skip most runs on a new repository, which is why
+  cron-job.org triggers the workflow instead. The token it uses can only start workflows in this repository.
 - GitHub pauses scheduled workflows in public repos after 60 days with no commits. A small commit restarts them.
-- Supabase pauses free projects after a week without activity. The 15-minute job keeps it active.
+- Supabase pauses free projects after a week without activity. The 10-minute job keeps it active.
 - The SEC allows up to 10 requests a second. The job stays well under that.
 
 ## Roadmap

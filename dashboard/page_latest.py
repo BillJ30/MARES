@@ -26,15 +26,22 @@ WINDOWS = {"6 hours": 6, "24 hours": 24, "3 days": 72, "7 days": 168}
 KINDS = {"News and filings": "all", "News only": "news", "SEC filings only": "filings"}
 names = dict(zip(company_list["ticker"], company_list["name"]))
 
-f1, f2, f3, f4, f5 = st.columns([1.35, 2, 1.8, 1.65, 1.8])
+f1, f2, f3, f4 = st.columns([1.2, 2.2, 2, 1.6])
 window = f1.selectbox("Time window", list(WINDOWS), index=1)
 tickers = f2.multiselect("Companies", list(names), format_func=lambda t: f"{t} · {names[t]}", placeholder="All companies")
 tags = f3.multiselect("Event types", queries.EVENT_TAGS, placeholder="All event types")
 kind = f4.selectbox("Show", list(KINDS))
-query = f5.text_input("Search headlines", placeholder="guidance, CEO, antitrust...")
+s1, s2 = st.columns([4, 2.2], vertical_alignment="bottom")
+query = s1.text_input("Search headlines", placeholder="guidance, CEO, antitrust...")
+show_holdings = s2.toggle(
+    "Fund holding reports",
+    value=False,
+    help='Automated articles like "Fund X acquires 1,000 shares of Nvidia". Hidden by default.',
+)
 
 try:
-    df = queries.stories(WINDOWS[window], tuple(tickers), tuple(tags), KINDS[kind], query, limit=100)
+    hide = () if show_holdings else queries.HIDDEN_BY_DEFAULT
+    df = queries.stories(WINDOWS[window], tuple(tickers), tuple(tags), KINDS[kind], query, limit=100, hide=hide)
     multi = tuple(int(s) for s in df.loc[df["articles"] > 1, "story_id"])
     articles = queries.story_articles(multi)
 except Exception as exc:  # noqa: BLE001
@@ -50,9 +57,10 @@ def arts(story):
     return articles[articles["story_id"] == story["story_id"]]
 
 
-# Front page: the most covered story leads, the next five sit beside it,
-# and everything else follows newest first.
-by_coverage = df.sort_values(["articles", "last_seen"], ascending=False)
+# Front page: the story reported by the most different outlets leads, the next
+# five sit beside it, and everything else follows newest first. Ranking by
+# distinct sources (not article count) stops one site's near-copies winning.
+by_coverage = df.sort_values(["sources", "articles", "last_seen"], ascending=False)
 lead = by_coverage.iloc[0]
 runners = by_coverage.iloc[1:6]
 used = {lead["story_id"], *runners["story_id"]}

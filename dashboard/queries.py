@@ -27,8 +27,11 @@ EVENT_TAGS = [
     "earnings", "analyst", "m-and-a", "leadership", "legal", "guidance",
     "product", "restructuring", "capital-return", "deal", "debt", "governance",
     "accounting", "cybersecurity", "bankruptcy", "listing", "equity", "announcement",
-    "periodic-report",
+    "periodic-report", "holdings",
 ]
+
+# Auto-generated fund-holding reports: hidden from the main views unless asked for.
+HIDDEN_BY_DEFAULT = ("holdings",)
 
 
 def database_url() -> str | None:
@@ -123,6 +126,7 @@ select g.*, coalesce(t.tags, '{}') as tags
 from grouped g
 left join tagged t using (story_id, ticker)
 where (%(tags)s::text[] is null or t.tags && %(tags)s::text[])
+  and (%(hide)s::text[] is null or not (coalesce(t.tags, '{}') && %(hide)s::text[]))
   and (%(q)s = '' or g.headline ilike '%%' || %(q)s || '%%')
 order by g.last_seen desc
 limit %(limit)s
@@ -137,13 +141,17 @@ def stories(
     kind: str = "all",
     q: str = "",
     limit: int = 100,
+    hide: tuple[str, ...] = HIDDEN_BY_DEFAULT,
 ) -> pd.DataFrame:
+    # Asking for a hidden tag explicitly (e.g. filtering on "holdings") shows it.
+    hide = tuple(h for h in hide if h not in tags)
     return _frame(
         STORIES_SQL,
         {
             "hours": hours,
             "tickers": list(tickers) or None,
             "tags": list(tags) or None,
+            "hide": list(hide) or None,
             "kind": kind,
             "q": q.strip(),
             "limit": limit,
@@ -213,6 +221,7 @@ def most_covered(days: int = 7, limit: int = 15) -> pd.DataFrame:
         from news_items n
         join companies c using (ticker)
         where n.source <> 'sec_edgar'
+          and not ('holdings' = any(n.tags))
           and n.published_at > now() - make_interval(days => %s)
         group by n.ticker, c.name
         order by stories desc, articles desc
@@ -235,6 +244,7 @@ def event_mix(days: int = 7) -> pd.DataFrame:
             where source <> 'sec_edgar'
               and published_at > now() - make_interval(days => %s)
               and t not in ('news', 'sec-filing')
+              and not ('holdings' = any(tags))
             group by 1
         )
         select date_trunc('day', first_seen) as day, tag, count(*) as stories
