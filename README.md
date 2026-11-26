@@ -83,6 +83,10 @@ A Streamlit app (`dashboard/`) reads the database and has four pages:
 | **Market pulse** | Most covered companies, the mix of event types per day, the share of duplicate coverage, and recent filings such as leadership changes |
 | **Pipeline health** | Every collector run: status, run time, items saved, problems |
 
+| Market pulse | Company file | Pipeline health |
+| --- | --- | --- |
+| ![Market pulse](docs/market-pulse.png) | ![Company page](docs/company-page.png) | ![Pipeline health](docs/pipeline-health.png) |
+
 Run it locally:
 
 ```bash
