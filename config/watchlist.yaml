@@ -15,7 +15,7 @@ settings:
   # SEC filings are checked for every company on every run.
   # News feeds rotate: each run checks this many companies, so with 100 companies
   # and batches of 25 every company's news is refreshed about once an hour.
-  news_batch_size: 25
+  news_batch_size: 50
   # Duplicate grouping (step 2): headlines about the same company count as one story
   # when their similarity is at least cluster_threshold (0 to 1) and they were
   # published within cluster_window_hours of each other. Tune with:

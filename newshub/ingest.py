@@ -23,7 +23,7 @@ from .models import NewsItem
 from .sources import edgar, finnhub, rss
 
 ALL_SOURCES = ("edgar", "rss", "finnhub")
-RUN_INTERVAL_SECONDS = 15 * 60  # matches the cron schedule in .github/workflows/ingest.yml
+RUN_INTERVAL_SECONDS = 10 * 60  # matches the cron schedule in .github/workflows/ingest.yml
 log = logging.getLogger("newshub")
 
 
